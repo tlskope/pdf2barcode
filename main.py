@@ -16,8 +16,12 @@ def extract_top_barcode_from_pdf(pdf_path):
             print(f"Extracted page 1 of {pdf_path}")
 
             # Convert page to image
-            img = page.to_image(resolution=300)
-            print(f"Converted page to image for {pdf_path}")
+            try:
+                img = page.to_image(resolution=300)
+                print(f"Converted page to image for {pdf_path}")
+            except Exception as img_error:
+                print(f"Failed to convert page to image for {pdf_path}: {img_error}")
+                return None
 
             # Save the page image temporarily
             temp_image_path = 'temp_page.png'
@@ -25,9 +29,14 @@ def extract_top_barcode_from_pdf(pdf_path):
             print(f"Saved temporary image for {pdf_path}")
 
             # Decode all barcodes from the image
-            barcode_data = decode(Image.open(temp_image_path))
-            os.remove(temp_image_path)
-            print(f"Decoded barcode(s) for {pdf_path}")
+            try:
+                barcode_data = decode(Image.open(temp_image_path))
+                print(f"Decoded barcode(s) for {pdf_path}: {barcode_data}")
+            except Exception as decode_error:
+                print(f"Failed to decode barcode for {pdf_path}: {decode_error}")
+                return None
+            finally:
+                os.remove(temp_image_path)
 
             # If multiple barcodes found, find the highest one (smallest y-coordinate)
             if barcode_data:
@@ -70,8 +79,9 @@ def process_pdf_folder(input_folder, output_folder, output_csv):
         barcode_text = extract_top_barcode_from_pdf(pdf_path)
         
         if barcode_text:
-            # Use the first 6 characters of the barcode text to create a new filename
-            new_filename = f"{barcode_text[:6]}.pdf"
+            # Use the entire barcode text for the new filename and replace hyphens with underscores
+            sanitized_barcode_text = barcode_text.replace("-", "_")
+            new_filename = f"{sanitized_barcode_text}.pdf"
             new_pdf_path = os.path.join(output_folder, new_filename)
 
             # Copy and rename the PDF file to the output folder
